@@ -13,18 +13,20 @@ class Bubble {
     required this.size,
     required this.color,
   });
+
+  // === FIX: Added the missing 'overlaps' method for collision detection ===
+  bool overlaps(Bubble other) {
+    // Calculate distance squared between the center points of the two bubbles
+    final dx = position.dx - other.position.dx;
+    final dy = position.dy - other.position.dy;
+    final distanceSquared = (dx * dx + dy * dy);
+
+    // Calculate the sum of the radii squared
+    final radius1 = size / 2;
+    final radius2 = other.size / 2;
+    final minDistanceSquared = (radius1 + radius2) * (radius1 + radius2);
+
+    // If the distance squared is less than the sum of the radii squared, they overlap.
+    return distanceSquared < minDistanceSquared;
+  }
 }
-
-// lib/data/facts.dart
-class EnvironmentalFact {
-  final String fact;
-
-  EnvironmentalFact(this.fact);
-}
-
-final List<EnvironmentalFact> facts = [
-  EnvironmentalFact('Recycling one plastic bottle saves enough energy to power a 60W lightbulb for 6 hours.'),
-  EnvironmentalFact('A single tree can absorb up to 48 pounds of carbon dioxide per year.'),
-  EnvironmentalFact('Globally, we lose a forest area the size of Panama every year.'),
-  EnvironmentalFact('Water pollution is a major threat, with 80% of wastewater flowing back into the ecosystem without being treated or reused.'),
-];
