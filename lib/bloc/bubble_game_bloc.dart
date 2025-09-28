@@ -1,6 +1,6 @@
 // lib/bloc/bubble_game_bloc.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:boom_boom/data/facts.dart'; // Ensure this path is correct
+import 'package:boom_boom/data/facts.dart';
 import 'package:boom_boom/models/bubble.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
@@ -10,9 +10,14 @@ abstract class BubbleGameEvent {}
 class BubbleSpawned extends BubbleGameEvent {}
 class BubblePopped extends BubbleGameEvent {
   final UniqueKey id;
-  BubblePopped(this.id);
+  final Offset popPosition; // <--- NEW: Carries the screen coordinate
+  BubblePopped(this.id, this.popPosition); // <--- Updated constructor
 }
 class CheckCollisions extends BubbleGameEvent {}
+class ClearPoppedFact extends BubbleGameEvent { // <--- NEW Event to clear animated facts
+  final UniqueKey bubbleId;
+  ClearPoppedFact(this.bubbleId);
+}
 
 // States
 class BubbleGameState {
@@ -20,25 +25,34 @@ class BubbleGameState {
   final List<Bubble> bubbles;
   final String? currentFact;
   final bool isGameOver;
+  final Map<UniqueKey, String> activePoppedFacts; // <--- NEW: Stores the fact text
+  final Map<UniqueKey, Offset> activeFactPositions; // <--- NEW: Stores the pop position
 
   BubbleGameState({
     required this.score,
     required this.bubbles,
     this.currentFact,
     this.isGameOver = false,
-  });
+    Map<UniqueKey, String>? activePoppedFacts,
+    Map<UniqueKey, Offset>? activeFactPositions,
+  }) : activePoppedFacts = activePoppedFacts ?? {},
+        activeFactPositions = activeFactPositions ?? {};
 
   BubbleGameState copyWith({
     int? score,
     List<Bubble>? bubbles,
     String? currentFact,
     bool? isGameOver,
+    Map<UniqueKey, String>? activePoppedFacts,
+    Map<UniqueKey, Offset>? activeFactPositions,
   }) {
     return BubbleGameState(
       score: score ?? this.score,
       bubbles: bubbles ?? this.bubbles,
       currentFact: currentFact ?? this.currentFact,
       isGameOver: isGameOver ?? this.isGameOver,
+      activePoppedFacts: activePoppedFacts ?? this.activePoppedFacts,
+      activeFactPositions: activeFactPositions ?? this.activeFactPositions,
     );
   }
 }
@@ -51,6 +65,7 @@ class BubbleGameBloc extends Bloc<BubbleGameEvent, BubbleGameState> {
     on<BubbleSpawned>(_onBubbleSpawned);
     on<BubblePopped>(_onBubblePopped);
     on<CheckCollisions>(_onCheckCollisions);
+    on<ClearPoppedFact>(_onClearPoppedFact); // <--- NEW HANDLER
   }
 
   void _onBubbleSpawned(BubbleSpawned event, Emitter<BubbleGameState> emit) {
@@ -72,21 +87,26 @@ class BubbleGameBloc extends Bloc<BubbleGameEvent, BubbleGameState> {
     if (state.isGameOver) return;
 
     final newBubbles = state.bubbles.where((bubble) => bubble.id != event.id).toList();
-    final newScore = state.score + 10;
+    final newScore = state.score + 1; // Score is 1
 
-    // === FIX: Safely access 'facts' list ===
-    String? newFact;
-    if (facts.isNotEmpty) {
-      newFact = facts[_random.nextInt(facts.length)].fact;
-    } else {
-      newFact = "Did you know: The environment is important! Add some facts to your list!";
+    String? poppedFact = facts[_random.nextInt(facts.length)].fact; // Select fact
+
+    // === FIX: Store fact text AND position ===
+    final updatedActiveFacts = Map<UniqueKey, String>.from(state.activePoppedFacts);
+    final updatedFactPositions = Map<UniqueKey, Offset>.from(state.activeFactPositions);
+
+    if (poppedFact != null) {
+      updatedActiveFacts[event.id] = poppedFact;
+      updatedFactPositions[event.id] = event.popPosition; // Store the exact pop position
     }
     // ======================================
 
     emit(state.copyWith(
       score: newScore,
       bubbles: newBubbles,
-      currentFact: newFact,
+      currentFact: poppedFact, // Keep currentFact update for compatibility
+      activePoppedFacts: updatedActiveFacts,
+      activeFactPositions: updatedFactPositions,
     ));
   }
 
@@ -106,5 +126,19 @@ class BubbleGameBloc extends Bloc<BubbleGameEvent, BubbleGameState> {
         }
       }
     }
+  }
+
+  // === NEW HANDLER: To clear the fact after the animation is done ===
+  void _onClearPoppedFact(ClearPoppedFact event, Emitter<BubbleGameState> emit) {
+    final updatedActiveFacts = Map<UniqueKey, String>.from(state.activePoppedFacts);
+    final updatedFactPositions = Map<UniqueKey, Offset>.from(state.activeFactPositions);
+
+    updatedActiveFacts.remove(event.bubbleId); // Remove the fact text
+    updatedFactPositions.remove(event.bubbleId); // Remove the position data
+
+    emit(state.copyWith(
+      activePoppedFacts: updatedActiveFacts,
+      activeFactPositions: updatedFactPositions,
+    ));
   }
 }

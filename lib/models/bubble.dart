@@ -14,19 +14,20 @@ class Bubble {
     required this.color,
   });
 
-  // === FIX: Added the missing 'overlaps' method for collision detection ===
+  // === FIX: Add the missing 'overlaps' method for collision detection ===
   bool overlaps(Bubble other) {
-    // Calculate distance squared between the center points of the two bubbles
+    // Calculate distance between bubble centers
     final dx = position.dx - other.position.dx;
     final dy = position.dy - other.position.dy;
+    // Use distance squared for performance (avoids expensive square root)
     final distanceSquared = (dx * dx + dy * dy);
 
-    // Calculate the sum of the radii squared
+    // Calculate sum of radii
     final radius1 = size / 2;
     final radius2 = other.size / 2;
     final minDistanceSquared = (radius1 + radius2) * (radius1 + radius2);
 
-    // If the distance squared is less than the sum of the radii squared, they overlap.
+    // If distance is less than the sum of radii, they overlap.
     return distanceSquared < minDistanceSquared;
   }
 }

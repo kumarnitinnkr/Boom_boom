@@ -1,145 +1,117 @@
-// lib/main.dart
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:boom_boom/bloc/bubble_game_bloc.dart';
-import 'package:boom_boom/services/audio_service.dart';
-import 'dart:async';
-import 'home_screen.dart';
-
-// --- GLOBAL SERVICES AND HELPERS ---
-final AudioService audioService = AudioService();
-
-// Global function to return to the home screen
-void _goHome(BuildContext context) {
+//lib/main.dart
+import'package:flutter/material.dart';import'package:flutter_bloc/flutter_bloc.dart';import'package:boom_boom/bloc/bubble_game_bloc.dart';import'package:boom_boom/services/audio_service.dart';import'dart:async';import'home_screen.dart';import'package:font_awesome_flutter/font_awesome_flutter.dart';import'package:collection/collection.dart';//ProvidesfirstWhereOrNull
+//---GLOBALSERVICESANDHELPERS---
+final AudioService audioService=AudioService();
+//Globalfunctiontoreturntothehomescreen
+void _goHome(BuildContext context){
   audioService.stopBackgroundMusic();
   Navigator.of(context).pushReplacement(
-    MaterialPageRoute(builder: (context) => const HomeScreen()),
+    MaterialPageRoute(builder:(context)=>const HomeScreen()),
   );
 }
-// ------------------------------------
-
-
-// --- CORE APPLICATION LAUNCHER (Single main function) ---
-void main() {
+//------------------------------------
+//---COREAPPLICATIONLAUNCHER(Singlemainfunction)---
+void main(){
+//Ensurethemainfunctionistheveryfirstexecutablepieceofcode
   audioService.init();
   runApp(const MainAppWrapper());
 }
-
-class MainAppWrapper extends StatelessWidget {
+class MainAppWrapper extends StatelessWidget{
   const MainAppWrapper({super.key});
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context){
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Bubble Pop Game',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+      debugShowCheckedModeBanner:false,
+      title:'Bubble Pop Game',
+      theme:ThemeData(
+        primarySwatch:Colors.blue,
       ),
-      home: const HomeScreen(),
+      home:const HomeScreen(),
     );
   }
 }
-
-// --- BUBBLE GAME SCREEN (This is the actual game UI) ---
-
-class BubbleGameScreen extends StatefulWidget {
+//---BUBBLEGAMESCREEN(TheactualgameUI)---
+class BubbleGameScreen extends StatefulWidget{
   const BubbleGameScreen({super.key});
-
   @override
-  State<BubbleGameScreen> createState() => _BubbleGameScreenState();
+  State<BubbleGameScreen> createState()=>_BubbleGameScreenState();
 }
-
-class _BubbleGameScreenState extends State<BubbleGameScreen> {
-  // Renaming to be consistent with the comprehensive approach
+class _BubbleGameScreenState extends State<BubbleGameScreen>with TickerProviderStateMixin{
   late Timer _spawnTimer;
   late Timer _collisionTimer;
-
+//Trackanimationsforpoppedfacts
+  final Map<UniqueKey,AnimationController>_factControllers={};
+//Helperfunctiontorestartthegamestate
+  void _startNewGame(){
+    audioService.stopBackgroundMusic();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder:(context)=>BlocProvider(
+          create:(context)=>BubbleGameBloc(),
+          child:const BubbleGameScreen(),
+        ),
+      ),
+    );
+  }
   @override
-  void initState() {
+  void initState(){
     super.initState();
-    final bloc = context.read<BubbleGameBloc>();
+    final bloc=context.read<BubbleGameBloc>();
     audioService.playBackgroundMusic();
-
-    // 1. Spawning Timer
-    _spawnTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!bloc.state.isGameOver) {
+    _spawnTimer=Timer.periodic(const Duration(seconds:1),(timer){
+      if(!bloc.state.isGameOver){
         context.read<BubbleGameBloc>().add(BubbleSpawned());
-      } else {
+      }else{
         _spawnTimer.cancel();
       }
     });
-
-    // 2. Collision Timer
-    _collisionTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
-      if (!bloc.state.isGameOver) {
+    _collisionTimer=Timer.periodic(const Duration(milliseconds:200),(timer){
+      if(!bloc.state.isGameOver){
         context.read<BubbleGameBloc>().add(CheckCollisions());
-      } else {
+      }else{
         _collisionTimer.cancel();
         audioService.stopBackgroundMusic();
       }
     });
   }
-
   @override
-  void dispose() {
+  void dispose(){
     _spawnTimer.cancel();
     _collisionTimer.cancel();
+    _factControllers.forEach((_,controller)=>controller.dispose());
     super.dispose();
   }
-
-  // === NEW: Helper method to restart the game state ===
-  void _startNewGame(BuildContext context) {
-    // This stops any lingering music and launches a fresh state.
-    audioService.stopBackgroundMusic();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        // Crucial: Use BlocProvider(create: ...) to get a completely new game instance
-        builder: (context) => BlocProvider(
-          create: (context) => BubbleGameBloc(),
-          child: const BubbleGameScreen(),
-        ),
-      ),
-    );
-  }
-  // ==================================================
-
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context){
     return Scaffold(
-      backgroundColor: Colors.black,
-
-      // === AppBar Implementation ===
-      appBar: AppBar(
-        backgroundColor: Colors.blue[800],
-        elevation: 4,
-        automaticallyImplyLeading: false,
-
-        // 1. LEFT SIDE: Score Display
-        leadingWidth: 120,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 10.0),
-          child: Center(
-            child: BlocBuilder<BubbleGameBloc, BubbleGameState>(
-                buildWhen: (previous, current) => previous.score != current.score,
-                builder: (context, state) {
-                  // Hide score display if the game is over
-                  if (state.isGameOver) return const SizedBox.shrink();
-
+      backgroundColor:Colors.black,
+//===AppBarImplementation===
+      appBar:AppBar(
+        backgroundColor:Colors.blue[800],
+        elevation:4,
+        automaticallyImplyLeading:false,
+//1.LEFTSIDE:ScoreDisplay
+        leadingWidth:120,
+        leading:Padding(
+          padding:const EdgeInsets.only(left:10.0),
+          child:Center(
+            child:BlocBuilder<BubbleGameBloc,BubbleGameState>(
+                buildWhen:(previous,current)=>previous.score!=current.score||previous.isGameOver!=current.isGameOver,
+                builder:(context,state){
+                  if(state.isGameOver)return const SizedBox.shrink();
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.yellow, width: 2),
+                    padding:const EdgeInsets.symmetric(horizontal:10,vertical:4),
+                    decoration:BoxDecoration(
+                      color:Colors.white,
+                      borderRadius:BorderRadius.circular(10),
+                      border:Border.all(color:Colors.yellow,width:2),
                     ),
-                    child: Text(
+                    child:Text(
                       'Score: ${state.score}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue[900],
+                      style:TextStyle(
+                        fontSize:18,
+                        fontWeight:FontWeight.bold,
+                        color:Colors.blue[900],
                       ),
                     ),
                   );
@@ -147,101 +119,126 @@ class _BubbleGameScreenState extends State<BubbleGameScreen> {
             ),
           ),
         ),
-
-        // 2. MIDDLE: Title
-        title: const Text(
+//2.MIDDLE:Title
+        title:const Text(
           'Bubble Boom! 🫧',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+          style:TextStyle(
+            fontWeight:FontWeight.bold,
+            color:Colors.white,
           ),
         ),
-        centerTitle: true,
-
-        // 3. RIGHT SIDE: Exit Button
-        actions: [
+        centerTitle:true,
+//3.RIGHTSIDE:ExitButton
+        actions:[
           IconButton(
-            icon: const Icon(Icons.exit_to_app_rounded, color: Colors.white),
-            iconSize: 30,
-            onPressed: () => _goHome(context), // Calling the global function
+            icon:const Icon(Icons.exit_to_app_rounded,color:Colors.white),
+            iconSize:30,
+            onPressed:()=>_goHome(context),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width:8),
         ],
       ),
-
-      body: BlocBuilder<BubbleGameBloc, BubbleGameState>(
-        builder: (context, state) {
-
-          // === GAME OVER UI: UPDATED BUTTONS ===
-          if (state.isGameOver) {
+      body:BlocConsumer<BubbleGameBloc,BubbleGameState>(
+        listener:(context,state){
+//Listenfornewfactsandstarttheanimationcontroller
+          state.activePoppedFacts.forEach((bubbleId,factText){
+            if(!_factControllers.containsKey(bubbleId)){
+              final controller=AnimationController(
+                duration:const Duration(seconds:3),//Factdisplayduration
+                vsync:this,
+              );
+              _factControllers[bubbleId]=controller;
+              controller.forward().then((_){
+//TheClearPoppedFacteventrequirestheUniqueKeyofthebubble
+                context.read<BubbleGameBloc>().add(ClearPoppedFact(bubbleId));
+                controller.dispose();
+                _factControllers.remove(bubbleId);
+              });
+            }
+          });
+        },
+        builder:(context,state){
+//===GAMEOVERUI===
+          if(state.isGameOver){
             return Center(
-              child: Container(
-                padding: const EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.red, width: 6),
+              child:Container(
+                padding:const EdgeInsets.all(40),
+                decoration:BoxDecoration(
+                  color:Colors.lime,
+                  borderRadius:BorderRadius.circular(15),
+                  border:Border.all(color:Colors.red,width:6),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                child:Column(
+                  mainAxisSize:MainAxisSize.min,
+                  children:[
                     const Text(
                       '💥GAME OVER!💥',
-                      style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold, color: Colors.red),
+                      style:TextStyle(fontSize:30,fontWeight:FontWeight.bold,color:Colors.red),
                     ),
-                    const SizedBox(height: 25),
+                    const SizedBox(height:25),
                     Text(
                       'Final Score: ${state.score}',
-                      style: const TextStyle(fontSize: 28, color: Colors.black87),
+                      style:const TextStyle(fontSize:28,color:Colors.black87),
                     ),
-                    const SizedBox(height: 40),
-                    // 1. PLAY AGAIN Button (New functionality)
+                    const SizedBox(height:40),
+//1.PLAYAGAINButton
                     ElevatedButton.icon(
-                      icon: const Icon(Icons.refresh), // Changed icon to refresh
-                      label: const Text('PLAY AGAIN'), // Changed text
-                      onPressed: () => _startNewGame(context), // Calls the new helper function
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.lightGreen,
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      icon:const Icon(Icons.refresh),
+                      label:const Text('PLAYAGAIN'),
+                      onPressed:_startNewGame,
+                      style:ElevatedButton.styleFrom(
+                        backgroundColor:Colors.lightGreen,
+                        padding:const EdgeInsets.symmetric(horizontal:30,vertical:15),
+                        textStyle:const TextStyle(fontSize:20,fontWeight:FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    // 2. Back to Home TextButton
+                    const SizedBox(height:10),
+//2.BacktoHomeButton
                     TextButton(
-                      onPressed: () => _goHome(context),
-                      child: const Text('Back to Home', style: TextStyle(color: Colors.blueGrey, fontSize: 16)),
+                      onPressed:()=>_goHome(context),
+                      child:const Text('Back to Home',style:TextStyle(color:Colors.blueGrey,fontSize:16)),
                     ),
                   ],
                 ),
               ),
             );
           }
-          // ==========================
-
-          // === NORMAL GAME PLAY UI remains the same ===
+//==========================
+//===NORMALGAMEPLAYUI===
+          final double appBarHeight=AppBar().preferredSize.height;
+          final double topPadding=MediaQuery.of(context).padding.top;
+          final double offsetTop=appBarHeight+topPadding;
           return Stack(
-            children: [
-              // Bubbles
-              ...state.bubbles.map((bubble) {
+            children:[
+//Bubbles(2Dcircleswithpoppositioncalculation)
+              ...state.bubbles.map((bubble){
                 return Positioned(
-                  left: bubble.position.dx,
-                  top: bubble.position.dy,
-                  child: GestureDetector(
-                    onTap: () {
-                      context.read<BubbleGameBloc>().add(BubblePopped(bubble.id));
+                  left:bubble.position.dx,
+                  top:bubble.position.dy,
+                  child:GestureDetector(
+                    onTap:(){
+//Calculatethepositionrelativetothewholescreen
+                      final RenderBox renderBox=context.findRenderObject()as RenderBox;
+                      final Offset stackOffset=renderBox.localToGlobal(Offset.zero);
+//Calculatethecenterpointofthetappedbubble(GlobalPosition)
+                      final Offset popPosition=Offset(
+                        stackOffset.dx+bubble.position.dx+(bubble.size/2),
+                        stackOffset.dy+bubble.position.dy+(bubble.size/2),
+                      );
+//Dispatcheventwithpositionforfloatingtext
+                      context.read<BubbleGameBloc>().add(BubblePopped(bubble.id,popPosition));
                       audioService.playPopSound();
                     },
-                    child: Container(
-                      width: bubble.size,
-                      height: bubble.size,
-                      decoration: BoxDecoration(
-                        color: bubble.color.withAlpha((255 * 0.7).round()),
-                        shape: BoxShape.circle,
-                        boxShadow: [
+                    child:Container(
+                      width:bubble.size,
+                      height:bubble.size,
+                      decoration:BoxDecoration(
+                        color:bubble.color.withAlpha((255*0.7).round()),
+                        shape:BoxShape.circle,
+                        boxShadow:[
                           BoxShadow(
-                            color: bubble.color.withAlpha((255 * 0.5).round()),
-                            blurRadius: 10,
+                            color:bubble.color.withAlpha((255*0.5).round()),
+                            blurRadius:10,
                           ),
                         ],
                       ),
@@ -249,25 +246,56 @@ class _BubbleGameScreenState extends State<BubbleGameScreen> {
                   ),
                 );
               }),
-
-              // Environmental Fact Display
-              if (state.currentFact != null)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Card(
-                      elevation: 5,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          state.currentFact!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 18),
+//EnvironmentalFactDisplay(Animated,FloatingatPopPosition)
+              ...state.activePoppedFacts.entries.map((entry){
+                final bubbleId=entry.key;
+                final factText=entry.value;
+                final Offset factPositionGlobal=state.activeFactPositions[bubbleId]??Offset(0,0);
+                if(!_factControllers.containsKey(bubbleId))return const SizedBox.shrink();
+                final controller=_factControllers[bubbleId]!;
+                const double cardWidth=180;
+                const double cardHeight=100;
+                const double floatOffset=30;//Floattext30pixelsabovepoppoint
+                return Positioned(
+//Center the card horizontally on the tap point
+                  left:factPositionGlobal.dx-(cardWidth/2),
+//FIX:AdjusttheverticalpositionrelativetotheStack/body
+                  top:factPositionGlobal.dy-offsetTop-floatOffset,
+                  child:ScaleTransition(
+                    scale:controller.drive(
+                      Tween<double>(begin:0.5,end:1.1).chain(CurveTween(curve:Curves.elasticOut)),
+                    ),
+                    child:FadeTransition(
+                      opacity:controller.drive(
+                        Tween<double>(begin:1.0,end:0.0).chain(CurveTween(curve:const Interval(0.8,1.0))),
+                      ),
+                      child:Material(
+                        elevation:6,
+                        color:Colors.transparent,
+                        child:Container(
+                          width:cardWidth,
+                          height:cardHeight,
+                          padding:const EdgeInsets.all(10),
+                          decoration:BoxDecoration(
+                            color:Colors.white.withOpacity(0.95),
+                            borderRadius:BorderRadius.circular(10),
+                            border:Border.all(color:Colors.blueAccent,width:2),
+                          ),
+                          child:Text(
+                            factText,
+                            textAlign:TextAlign.center,
+                            style:const TextStyle(
+                              fontSize:14,
+                              color:Colors.black,
+                              fontWeight:FontWeight.w500,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                );
+              }).toList(),
             ],
           );
         },

@@ -4,8 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:boom_boom/bloc/bubble_game_bloc.dart';
 import 'package:boom_boom/main.dart';
 import 'package:boom_boom/services/audio_service.dart'; // Import service
-// Unused import 'package:flutter/services.dart' is removed,
-// as SystemNavigator.pop() is no longer needed on the home screen.
+// Note: Unused import 'package:flutter/services.dart' should be removed if still present
 
 // Global AudioService instance
 final AudioService audioService = AudioService();
@@ -32,13 +31,11 @@ class HomeScreen extends StatelessWidget {
     audioService.playBackgroundMusic();
 
     return Scaffold(
-      backgroundColor: Colors.tealAccent,
-      // Warning fix: Unnecessary instance of 'Container' removed
-      // by placing the decoration directly on the Scaffold body.
+      // Removed backgroundColor: Colors.tealAccent as the body covers it.
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/home_bg.png'),
+            image: AssetImage('images/home_screen_background.png'),
             fit: BoxFit.cover,
           ),
         ),
@@ -46,17 +43,42 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'BUBBLE BOOM ',
-                style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.lightBlue,
-                    shadows: [
-                      Shadow(offset: Offset(2, 2), blurRadius: 4.0, color: Colors.black54),
-                    ]
-                ),
+              // === UPDATED: 3D Text Title Implementation using Stack ===
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Bottom/Shadow Layer (Darker, slightly offset for depth)
+                  Text(
+                    'BUBBLE BOOM',
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.blue[900], // Dark color for shadow/depth
+                    ),
+                  ),
+                  // Top/Main Layer (Lighter, positioned slightly up and left)
+                  Positioned(
+                    top: 2.0, // Vertical offset
+                    left: 2.0, // Horizontal offset
+                    child: Text(
+                      'BUBBLE BOOM!',
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.lightBlue[300], // Lighter color for main surface
+                        shadows: [
+                          Shadow( // Soft white glow for a "bubbly" feel
+                            color: Colors.white.withOpacity(0.8),
+                            blurRadius: 5,
+                            offset: Offset(0, 0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              // ===========================================
               const SizedBox(height: 80),
 
               // 1. PLAY BUTTON
@@ -94,8 +116,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 // ====================================================================
-// FIX: The _CustomButton class definition MUST be placed here
-//      in the same file where it is used.
+// The _CustomButton class definition remains here
 // ====================================================================
 class _CustomButton extends StatelessWidget {
   final String text;
