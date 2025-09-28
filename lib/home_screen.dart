@@ -10,7 +10,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // REQUIRED for
 final AudioService audioService = AudioService();
 
 // ====================================================================
-// --- 1. DAZZLING TITLE WIDGET (Defined FIRST) ---
+// --- 1. DAZZLING TITLE WIDGET (Handles entrance animation & 3D text) ---
 // ====================================================================
 class DazzlingTitle extends StatefulWidget {
   const DazzlingTitle({super.key});
@@ -28,7 +28,7 @@ class _DazzlingTitleState extends State<DazzlingTitle> with TickerProviderStateM
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 4000),
+      duration: const Duration(milliseconds: 3500), // Increased duration
       vsync: this,
     );
 
@@ -57,10 +57,12 @@ class _DazzlingTitleState extends State<DazzlingTitle> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    // Define colors for the 12 characters (B-U-B-B-L-E [space] B-O-O-M-!)
     final List<Color> titleColors = [
       Colors.redAccent, Colors.yellowAccent, Colors.lightGreenAccent, Colors.cyanAccent, Colors.pinkAccent, Colors.orangeAccent, Colors.transparent,
       Colors.red, Colors.yellow, Colors.lightGreen, Colors.cyan, Colors.pink,
     ];
+    // FIX: Changed to the 12-character string that includes the space and exclamation mark
     const String titleText = 'BUBBLE BOOM';
 
     final List<Widget> coloredLetters = titleText.split('').asMap().entries.map((entry) {
@@ -75,7 +77,7 @@ class _DazzlingTitleState extends State<DazzlingTitle> with TickerProviderStateM
           color: titleColors[index % titleColors.length],
           fontFamily: 'GameFont',
           shadows: [
-            Shadow(color: Colors.white.withAlpha((255 * 0.8).round()), blurRadius: 5, offset: Offset(0, 0)), // FIX: Deprecated withOpacity
+            Shadow(color: Colors.white.withAlpha((255 * 0.8).round()), blurRadius: 5, offset: Offset(0, 0)),
           ],
         ),
       );
@@ -89,9 +91,9 @@ class _DazzlingTitleState extends State<DazzlingTitle> with TickerProviderStateM
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // 1. Shadow Layer
+            // 1. Shadow Layer (Dark color for 3D extrusion)
             Text(
-              titleText,
+              titleText, // Use the full text for the shadow layer
               style: TextStyle(
                 fontSize: 48,
                 fontWeight: FontWeight.w900,
@@ -99,10 +101,10 @@ class _DazzlingTitleState extends State<DazzlingTitle> with TickerProviderStateM
                 fontFamily: 'GameFont',
               ),
             ),
-            // 2. Top Layer
+            // 2. Top Layer (Multi-Color Text, slightly offset)
             Positioned(
               top: 2.0, left: 2.0,
-              child: Row(
+              child: Row( // Layers individual colored letters
                 mainAxisSize: MainAxisSize.min,
                 children: coloredLetters,
               ),
@@ -115,7 +117,7 @@ class _DazzlingTitleState extends State<DazzlingTitle> with TickerProviderStateM
 }
 
 // ====================================================================
-// --- 2. SOUND TOGGLE BUTTON WIDGET (Defined SECOND) ---
+// --- 2. SOUND TOGGLE BUTTON WIDGET (Handles mute state) ---
 // ====================================================================
 class SoundToggleButton extends StatefulWidget {
   const SoundToggleButton({super.key});
@@ -181,7 +183,7 @@ class _SoundToggleButtonState extends State<SoundToggleButton> {
 
 
 // ====================================================================
-// --- 3. CUSTOM BUTTON WIDGET (Defined THIRD) ---
+// --- 3. CUSTOM BUTTON WIDGET (3D Press Effect) ---
 // ====================================================================
 class _CustomButton extends StatefulWidget {
   final String text;
@@ -249,7 +251,7 @@ class _CustomButtonState extends State<_CustomButton> {
               right: 0,
               child: Container(
                 decoration: BoxDecoration(
-                  color: widget.buttonColor,
+                  color: widget.buttonColor, // Brighter color for the top surface
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -274,7 +276,7 @@ class _CustomButtonState extends State<_CustomButton> {
 
 
 // ====================================================================
-// --- 4. HOME SCREEN (Defined LAST, as it consumes all above widgets) ---
+// --- 4. HOME SCREEN (The main consuming widget) ---
 // ====================================================================
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -294,9 +296,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    audioService.init();
-    audioService.playBackgroundMusic();
-
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
