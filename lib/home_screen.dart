@@ -4,21 +4,288 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:boom_boom/bloc/bubble_game_bloc.dart';
 import 'package:boom_boom/main.dart';
 import 'package:boom_boom/services/audio_service.dart'; // Import service
-// Note: Unused import 'package:flutter/services.dart' should be removed if still present
+import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // REQUIRED for icons
 
 // Global AudioService instance
 final AudioService audioService = AudioService();
 
+// ====================================================================
+// --- 1. DAZZLING TITLE WIDGET (Defined FIRST) ---
+// ====================================================================
+class DazzlingTitle extends StatefulWidget {
+  const DazzlingTitle({super.key});
+
+  @override
+  State<DazzlingTitle> createState() => _DazzlingTitleState();
+}
+
+class _DazzlingTitleState extends State<DazzlingTitle> with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<Offset> _floatAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 4000),
+      vsync: this,
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.5, end: 1.1), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.1, end: 0.95), weight: 10),
+      TweenSequenceItem(tween: Tween(begin: 0.95, end: 1.0), weight: 50),
+    ]).animate(_controller);
+
+    _floatAnimation = Tween<Offset>(
+      begin: const Offset(0.0, -0.2),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Color> titleColors = [
+      Colors.redAccent, Colors.yellowAccent, Colors.lightGreenAccent, Colors.cyanAccent, Colors.pinkAccent, Colors.orangeAccent, Colors.transparent,
+      Colors.red, Colors.yellow, Colors.lightGreen, Colors.cyan, Colors.pink,
+    ];
+    const String titleText = 'BUBBLE BOOM';
+
+    final List<Widget> coloredLetters = titleText.split('').asMap().entries.map((entry) {
+      final int index = entry.key;
+      final String letter = entry.value;
+
+      return Text(
+        letter,
+        style: TextStyle(
+          fontSize: 48,
+          fontWeight: FontWeight.w900,
+          color: titleColors[index % titleColors.length],
+          fontFamily: 'GameFont',
+          shadows: [
+            Shadow(color: Colors.white.withAlpha((255 * 0.8).round()), blurRadius: 5, offset: Offset(0, 0)), // FIX: Deprecated withOpacity
+          ],
+        ),
+      );
+    }).toList();
+
+
+    return SlideTransition(
+      position: _floatAnimation,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // 1. Shadow Layer
+            Text(
+              titleText,
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.w900,
+                color: Colors.blue[900],
+                fontFamily: 'GameFont',
+              ),
+            ),
+            // 2. Top Layer
+            Positioned(
+              top: 2.0, left: 2.0,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: coloredLetters,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ====================================================================
+// --- 2. SOUND TOGGLE BUTTON WIDGET (Defined SECOND) ---
+// ====================================================================
+class SoundToggleButton extends StatefulWidget {
+  const SoundToggleButton({super.key});
+
+  @override
+  State<SoundToggleButton> createState() => _SoundToggleButtonState();
+}
+
+class _SoundToggleButtonState extends State<SoundToggleButton> {
+  bool _isMuted = false;
+
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+
+    if (_isMuted) {
+      audioService.stopBackgroundMusic();
+    } else {
+      audioService.playBackgroundMusic();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final IconData icon = _isMuted ? FontAwesomeIcons.volumeOff : FontAwesomeIcons.volumeUp;
+    final String text = _isMuted ? 'Sound OFF' : 'Sound ON';
+
+    return ElevatedButton(
+      onPressed: _toggleMute,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _isMuted ? Colors.redAccent : Colors.blueAccent,
+        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+        minimumSize: const Size(280, 70),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        elevation: 15,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FaIcon(
+            icon,
+            color: Colors.white,
+            size: 24,
+          ),
+          const SizedBox(width: 15),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 24,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'GameFont',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+// ====================================================================
+// --- 3. CUSTOM BUTTON WIDGET (Defined THIRD) ---
+// ====================================================================
+class _CustomButton extends StatefulWidget {
+  final String text;
+  final VoidCallback onPressed;
+  final Color buttonColor;
+
+  const _CustomButton({
+    required this.text,
+    required this.onPressed,
+    required this.buttonColor,
+  });
+
+  @override
+  State<_CustomButton> createState() => _CustomButtonState();
+}
+
+class _CustomButtonState extends State<_CustomButton> {
+  bool _isPressed = false;
+  static const double _shadowDepth = 8.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final offset = _isPressed ? const Offset(0, 4.0) : const Offset(0, _shadowDepth);
+    final double blurRadius = _isPressed ? 3.0 : 12.0;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onPressed,
+
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+        width: 280,
+        height: 70,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              offset: offset,
+              blurRadius: blurRadius,
+            ),
+          ],
+        ),
+
+        child: Stack(
+          children: [
+            // Bottom layer (Used as the base color)
+            Container(
+              decoration: BoxDecoration(
+                color: widget.buttonColor.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+
+            // Top surface (Moves down when pressed)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.easeOut,
+              top: _isPressed ? 4.0 : 0,
+              bottom: _isPressed ? 0 : 4.0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: widget.buttonColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    widget.text,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'GameFont',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+// ====================================================================
+// --- 4. HOME SCREEN (Defined LAST, as it consumes all above widgets) ---
+// ====================================================================
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   // Helper method to navigate and start a new game
   void _startGame(BuildContext context) {
-    audioService.stopBackgroundMusic(); // Stop home music
+    audioService.stopBackgroundMusic();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => BlocProvider(
-          create: (context) => BubbleGameBloc(), // Creates a brand new Bloc instance
+          create: (context) => BubbleGameBloc(),
           child: const BubbleGameScreen(),
         ),
       ),
@@ -31,11 +298,10 @@ class HomeScreen extends StatelessWidget {
     audioService.playBackgroundMusic();
 
     return Scaffold(
-      // Removed backgroundColor: Colors.tealAccent as the body covers it.
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('images/home_screen_background.png'),
+            image: AssetImage('assets/images/home_screen_background.png'),
             fit: BoxFit.cover,
           ),
         ),
@@ -43,42 +309,9 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // === UPDATED: 3D Text Title Implementation using Stack ===
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Bottom/Shadow Layer (Darker, slightly offset for depth)
-                  Text(
-                    'BUBBLE BOOM',
-                    style: TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.blue[900], // Dark color for shadow/depth
-                    ),
-                  ),
-                  // Top/Main Layer (Lighter, positioned slightly up and left)
-                  Positioned(
-                    top: 2.0, // Vertical offset
-                    left: 2.0, // Horizontal offset
-                    child: Text(
-                      'BUBBLE BOOM!',
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.lightBlue[300], // Lighter color for main surface
-                        shadows: [
-                          Shadow( // Soft white glow for a "bubbly" feel
-                            color: Colors.white.withOpacity(0.8),
-                            blurRadius: 5,
-                            offset: Offset(0, 0),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              // ===========================================
+              // === Consumes DazzlingTitle ===
+              const DazzlingTitle(),
+              // ==============================
               const SizedBox(height: 80),
 
               // 1. PLAY BUTTON
@@ -97,57 +330,14 @@ class HomeScreen extends StatelessWidget {
                     const SnackBar(content: Text('Viewing High Scores...')),
                   );
                 },
-                buttonColor: Colors.amber,
+                buttonColor: Colors.orangeAccent,
               ),
               const SizedBox(height: 20),
 
-              // 3. RESTART GAME (Former Exit button)
-              _CustomButton(
-                text: 'Restart Game', // Changed to Restart functionality
-                onPressed: () => _startGame(context), // Starts a new game state
-                buttonColor: Colors.blueAccent,
-              ),
+              // 3. SOUND TOGGLE BUTTON
+              const SoundToggleButton(),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ====================================================================
-// The _CustomButton class definition remains here
-// ====================================================================
-class _CustomButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onPressed;
-  final Color buttonColor; // New property for custom color
-
-  const _CustomButton({
-    required this.text,
-    required this.onPressed,
-    required this.buttonColor, // Must be passed in
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: buttonColor,
-        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-        minimumSize: const Size(280, 70),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        elevation: 10,
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 24,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );

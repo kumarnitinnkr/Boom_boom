@@ -58,7 +58,7 @@ class _BubbleGameScreenState extends State<BubbleGameScreen>with TickerProviderS
     super.initState();
     final bloc=context.read<BubbleGameBloc>();
     audioService.playBackgroundMusic();
-    _spawnTimer=Timer.periodic(const Duration(seconds:1),(timer){
+    _spawnTimer=Timer.periodic(const Duration(seconds:2),(timer){
       if(!bloc.state.isGameOver){
         context.read<BubbleGameBloc>().add(BubbleSpawned());
       }else{
@@ -121,7 +121,7 @@ class _BubbleGameScreenState extends State<BubbleGameScreen>with TickerProviderS
         ),
 //2.MIDDLE:Title
         title:const Text(
-          'Bubble Boom! 🫧',
+          'Bubble Boom🫧',
           style:TextStyle(
             fontWeight:FontWeight.bold,
             color:Colors.white,
@@ -144,7 +144,7 @@ class _BubbleGameScreenState extends State<BubbleGameScreen>with TickerProviderS
           state.activePoppedFacts.forEach((bubbleId,factText){
             if(!_factControllers.containsKey(bubbleId)){
               final controller=AnimationController(
-                duration:const Duration(seconds:3),//Factdisplayduration
+                duration:const Duration(seconds:5),//Factdisplayduration
                 vsync:this,
               );
               _factControllers[bubbleId]=controller;
@@ -184,7 +184,7 @@ class _BubbleGameScreenState extends State<BubbleGameScreen>with TickerProviderS
 //1.PLAYAGAINButton
                     ElevatedButton.icon(
                       icon:const Icon(Icons.refresh),
-                      label:const Text('PLAYAGAIN'),
+                      label:const Text('PLAY AGAIN'),
                       onPressed:_startNewGame,
                       style:ElevatedButton.styleFrom(
                         backgroundColor:Colors.lightGreen,
@@ -277,7 +277,7 @@ class _BubbleGameScreenState extends State<BubbleGameScreen>with TickerProviderS
                           height:cardHeight,
                           padding:const EdgeInsets.all(10),
                           decoration:BoxDecoration(
-                            color:Colors.white.withOpacity(0.95),
+                            color:Colors.cyanAccent.withOpacity(0.95),
                             borderRadius:BorderRadius.circular(10),
                             border:Border.all(color:Colors.blueAccent,width:2),
                           ),
